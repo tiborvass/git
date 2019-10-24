@@ -634,28 +634,36 @@ static int git_tcp_connect_sock(char *host, int flags)
 	if (flags & CONNECT_VERBOSE)
 		fprintf(stderr, _("Looking up %s ... "), host);
 
-	gai = getaddrinfo(host, port, &hints, &ai);
-	if (gai)
-		die(_("unable to look up %s (port %s) (%s)"), host, port, gai_strerror(gai));
+//	gai = getaddrinfo(host, port, &hints, &ai);
+//	if (gai)
+//		die(_("unable to look up %s (port %s) (%s)"), host, port, gai_strerror(gai));
 
 	if (flags & CONNECT_VERBOSE)
 		/* TRANSLATORS: this is the end of "Looking up %s ... " */
 		fprintf(stderr, _("done.\nConnecting to %s (port %s) ... "), host, port);
 
-	for (ai0 = ai; ai; ai = ai->ai_next, cnt++) {
-		sockfd = socket(ai->ai_family,
-				ai->ai_socktype, ai->ai_protocol);
+	//for (ai0 = ai; ai; ai = ai->ai_next, cnt++) {
+	for (int i = 0; i == 0; i++) {
+		sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+		//sockfd = socket(ai->ai_family,
+		//		ai->ai_socktype, ai->ai_protocol);
+		struct sockaddr_un addr;
+		memset(&addr, 0, sizeof(addr));
+		addr.sun_family = AF_UNIX;
+		strlcpy(addr.sun_path, host, strlen(host)+1);
+		bind(sockfd, (struct sockaddr*)&addr, sizeof(addr));
+		
 		if ((sockfd < 0) ||
-		    (connect(sockfd, ai->ai_addr, ai->ai_addrlen) < 0)) {
+		    (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)) {
 			strbuf_addf(&error_message, "%s[%d: %s]: errno=%s\n",
-				    host, cnt, ai_name(ai), strerror(errno));
+				    host, cnt, host /*ai_name(ai)*/, strerror(errno));
 			if (0 <= sockfd)
 				close(sockfd);
 			sockfd = -1;
 			continue;
 		}
 		if (flags & CONNECT_VERBOSE)
-			fprintf(stderr, "%s ", ai_name(ai));
+			fprintf(stderr, "%s ", host /*ai_name(ai)*/);
 		break;
 	}
 
@@ -664,7 +672,7 @@ static int git_tcp_connect_sock(char *host, int flags)
 	if (sockfd < 0)
 		die(_("unable to connect to %s:\n%s"), host, error_message.buf);
 
-	enable_keepalive(sockfd);
+	//enable_keepalive(sockfd);
 
 	if (flags & CONNECT_VERBOSE)
 		/* TRANSLATORS: this is the end of "Connecting to %s (port %s) ... " */
